@@ -31,7 +31,7 @@ def moments(data):
     width_y = np.sqrt(np.abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
     height = data.max()
     offset = np.sum(data[:, 0])/(X.shape[0])
-    deg=0.  # I miss a good initialization values for the rotation angle
+    deg=0.   
     return height, x, y, np.abs(width_x), np.abs(width_y), deg%360, offset
 
 def fitgaussian(data, shift):
