@@ -36,7 +36,7 @@ def fitgaussian(data, shift):
     """Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution found by a fit"""
     params = moments(data)
-    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) - data)
+    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape))-data)
     p, success = leastsq(errorfunction, params)
     return p
 
