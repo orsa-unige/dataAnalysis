@@ -3,14 +3,14 @@
 import sys, json, warnings
 import numpy as np
 import matplotlib.pyplot as plt
-from astropy.modeling import models, fitting
 from astropy.io import fits
+from astropy.modeling import models, fitting
 
-# python3 gaussian2dfit.2.py '"{ \"filename\":\"./gaussian2d_example.fits\",  \"x\":682, \"y\":410, \"box\":10 }\"'
 try:
     inputjson=json.loads(sys.argv[1])
 except:
-    print ("ERROR: no data or bad data format provided.")
+    print ("ERROR: no data or bad data format provided. Try:")
+    print ('\'"{ \\"filename\\":\\"./gaussian2d_example.fits\\",  \\"x\\":682, \\"y\\":410, \\"box\\":10 }\"\'')
     sys.exit(1)
 
 class input_parameters(object):   # Metto tutto il JSON in un oggetto Python
@@ -25,7 +25,7 @@ ima=hdus[0].data[p.y-p.box//2:p.y+p.box//2, p.x-p.box//2:p.x+p.box//2]
 
 # Modello e stima iniziale (alcuni nel json di input, altri no per pigrizia)
 bell=models.Gaussian2D(amplitude=1200, x_mean=p.x, y_mean=p.y,
-                       x_stddev=6, y_stddev=6, theta=0.3 )
+                       x_stddev=6, y_stddev=6, bounds={'theta': [-3.14,3.14]} )
 back=models.Polynomial2D(degree=0) # Altro modello per il fondo (una costante)
 
 f_init=bell+back # Sommo i due modelli (cfr compound model pyastropd)
@@ -52,4 +52,4 @@ plt.title("Residual")
 plt.savefig("data-model-residuals.png")
 
 outputjson=dict(zip(f_fit.param_names, f_fit.parameters)) # Serializza in risultato...
-print (json.dumps(outputjson, sort_keys=True, indent=2))  # ...e mostralo in un json leggibile
+print (json.dumps(outputjson, sort_keys=True, indent=2))  # ...e mostralo in un bel json

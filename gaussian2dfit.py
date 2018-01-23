@@ -1,8 +1,10 @@
-import numpy as np
+
+
 from sys import argv
+import numpy as np
+import matplotlib.pyplot as plt
 from astropy.io import fits
 from scipy.optimize import leastsq
-import matplotlib.pyplot as plt
 
 def gaussian(amplitude, center_x, center_y, sigma_x, sigma_y, deg, offset):
     """Returns a gaussian function with the given parameters"""
