@@ -25,7 +25,7 @@ ima=hdus[0].data[p.y-p.box//2:p.y+p.box//2, p.x-p.box//2:p.x+p.box//2]
 
 # Modello e stima iniziale (alcuni nel json di input, altri no per pigrizia)
 bell=models.Gaussian2D(amplitude=1200, x_mean=p.x, y_mean=p.y,
-                       x_stddev=6, y_stddev=6, bounds={'theta': [-3.14,3.14]} )
+                       x_stddev=6, y_stddev=6, bounds={'theta': [-np.pi,np.pi]} )
 back=models.Polynomial2D(degree=0) # Altro modello per il fondo (una costante)
 
 f_init=bell+back # Sommo i due modelli (cfr compound model pyastropd)
@@ -50,6 +50,11 @@ plt.subplot(1,3,3).imshow(ima - f_fit(x, y), vmax=ima.max())
 plt.title("Residual")
 
 plt.savefig("data-model-residuals.png")
+
+try: 
+    f_fit.theta_0  =  np.degrees(f_fit.theta_0)  # Trasformo in gradi
+except:
+    pass  # Se scommento la moffat, theta non esiste. Così non si pianta.
 
 outputjson=dict(zip(f_fit.param_names, f_fit.parameters)) # Serializza in risultato...
 print (json.dumps(outputjson, sort_keys=True, indent=2))  # ...e mostralo in un bel json
