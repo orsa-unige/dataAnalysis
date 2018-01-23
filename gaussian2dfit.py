@@ -34,7 +34,7 @@ def moments(data):
     deg=0.   
     return height, x, y, np.abs(width_x), np.abs(width_y), deg%360, offset
 
-def fitgaussian(data, shift):
+def fitgaussian(data):
     """Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution found by a fit"""
     params = moments(data)
@@ -62,7 +62,7 @@ def main(argv):
 
     x, y = np.mgrid[0:box, 0:box]
     data = image[posx-box//2:posx+box//2, posy-box//2:posy+box//2]
-    params = fitgaussian(data, shift=[posx-box//2, posy-box//2])
+    params = fitgaussian(data)
 
     fit = gaussian(*params)
     plt.imshow(data)
