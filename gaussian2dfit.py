@@ -1,10 +1,8 @@
 import numpy as np
-import pandas as pd
 from sys import argv
 from astropy.io import fits
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-
 
 def gaussian(amplitude, center_x, center_y, sigma_x, sigma_y, deg, offset):
     """Returns a gaussian function with the given parameters"""
@@ -38,11 +36,9 @@ def fitgaussian(data, shift):
     """Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution found by a fit"""
     params = moments(data)
-    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) -
-                                 data)
+    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) - data)
     p, success = leastsq(errorfunction, params)
     return p
-
 
 def main(argv):
 
@@ -53,13 +49,13 @@ def main(argv):
     plt.show()
     plt.close()
 
-    posy = input("enter x you see on the plot: ")
-    posx = input("enter y you see on the plot: ")
-    box = input("enter box edge: ")
+    posy = int(input("enter x you see on the plot: "))
+    posx = int(input("enter y you see on the plot: "))
+    box = int(input("enter box edge: "))
 
     fitsfile.close()
 
-    if box > posx or box > posy or box < 1 or posx < 1 or posy < 1:
+    if (box > posx) or (box > posy) or (box < 1) or (posx < 1) or (posy < 1):
         raise ValueError("input error")
 
     x, y = np.mgrid[0:box, 0:box]
@@ -83,7 +79,6 @@ def main(argv):
             dictionary[p] = params[idxp]
             
     print(dictionary)
-
 
 if __name__ == '__main__':
     main(argv)
