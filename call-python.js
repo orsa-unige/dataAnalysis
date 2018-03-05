@@ -1,34 +1,39 @@
 var glob = require("glob");
 
 var PythonShell = require('python-shell');
-var pyshell = new PythonShell('./gaussian2dfit-davide.py', {pythonPath : '/usr/bin/python3'});
 
+var fitlist=glob.sync("/home/indy/desktop/sim/v-vega/NTT15*.fits");
 
-// options is optional
-var fitlist=glob.sync("/home/indy/desktop/sim/v-vega/NTT15*1.fits");
+var outjson=[];                
 
-var outjson=[];
+let requests = fitlist.map((item) => {
+    return new Promise((resolve) => {
+        
+        let data = { filename:item,  x:48, y:47, box:30 };
 
-fitlist.forEach(function(item, index){
-    var data = { filename:item,  x:48, y:47, box:30 };
-//    var data = { filename:"/home/indy/desktop/sim/v-vega/NTT15_11.fits",  x:48, y:47, box:30 };
-    
-    pyshell.send(JSON.stringify(data), {mode:'json'});//the problem function
+        var pyshell = new PythonShell('./gaussian2dfit-davide.py', {pythonPath : '/usr/bin/python3'});
+        
+        pyshell
+            .send(JSON.stringify(data), {mode:'json'})
+            .on('message', function (message) {
+                outjson.push(JSON.parse(message));
+            });
 
-    pyshell.on('message', function (message) {
-        outjson.push(message);
-       
+        pyshell
+            .end(function(err){
+                if (err){
+            console.log('error:');
+                    throw err;
+                }
+                resolve(); /// callback function when finished
+            });
+
     });
     
- });
-
-// end the input stream and allow the process to exit
-pyshell.end(function (err) {
-    if (err){
-        console.log('error:');
-        throw err;
-    };
-    
-    console.log(outjson);
-
 });
+
+Promise.all(requests).then(function(){
+    console.log(JSON.stringify(outjson,null,2));
+        
+});
+
