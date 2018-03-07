@@ -2,7 +2,7 @@ var glob = require("glob");
 
 var PythonShell = require('python-shell');
 
-var fitlist=glob.sync("/home/indy/desktop/sim/v-vega/NTT15*.fits");
+var fitlist=glob.sync("/home/indy/desktop/sim/v-g5/NTT19.0*.fits");
 
 var outjson=[];                
 
