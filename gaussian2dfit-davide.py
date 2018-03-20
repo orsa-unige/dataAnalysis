@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+# import time
+# start_time = time.time();
 
 import sys, json, warnings
-import numpy as np
-import matplotlib.pyplot as plt
+from numpy import pi, mgrid, degrees
 from astropy.io import fits
 from astropy.modeling import models, fitting
 
@@ -10,9 +11,7 @@ try:
     lines = sys.stdin.readlines();
     inputjson=lines[0];
 except:
-    print ("ERROR: no data or bad data format provided. Try:")
-    print ('echo \{\"filename\":\"/home/indy/desktop/sim/v-vega/NTT15_31.fits\",\"x\":48,\"y\":47,\"box\":30\} | ./gaussian2dfit-davide.py')
-    print ('You sent:')
+    print ("ERROR: no data or bad data format provided. You sent:")
     print (sys.stdin)
     sys.exit(1)
 
@@ -23,12 +22,13 @@ class input_parameters(object):   # Metto tutto il JSON in un oggetto Python
 p=input_parameters(inputjson)     # Ecco i dati in un comodo oggetto
 
 # Immagine vera
-hdus=fits.open(p.filename)           
+hdus=fits.open(p.filename)
 ima=hdus[0].data[p.y-p.box//2:p.y+p.box//2, p.x-p.box//2:p.x+p.box//2]
+hdr=hdus[0].header
 
 # Modello e stima iniziale (alcuni nel json di input, altri no per pigrizia)
 bell=models.Gaussian2D(amplitude=1200, x_mean=p.x, y_mean=p.y,
-                       x_stddev=6, y_stddev=6, bounds={'theta': [-np.pi,np.pi]} )
+                       x_stddev=6, y_stddev=6, bounds={'theta': [-pi,pi]} )
 back=models.Polynomial2D(degree=0) # Altro modello per il fondo (una costante)
 
 f_init=bell+back # Sommo i due modelli (cfr compound model pyastropd)
@@ -38,29 +38,23 @@ f_init=bell+back # Sommo i due modelli (cfr compound model pyastropd)
 
 fit_g=fitting.LevMarLSQFitter()   # Inizializzo il fitter: Levenberg-Marquardt
 
-y,x=np.mgrid[ p.y-p.box//2:p.y+p.box//2, p.x-p.box//2:p.x+p.box//2 ]
+y,x=mgrid[ p.y-p.box//2:p.y+p.box//2, p.x-p.box//2:p.x+p.box//2 ]
 with warnings.catch_warnings():     # Faccio il fit
     warnings.simplefilter('ignore') # Ignore model linearity warning from the fitter
     f_fit = fit_g(f_init, x, y, ima)
 
-# plt.figure(figsize=(8, 2.5))
-# plt.inferno()
-# plt.subplot(1,3,1).imshow(ima,               vmax=ima.max())
-# plt.title("Data")
-# plt.subplot(1,3,2).imshow(      f_fit(x, y), vmax=ima.max())
-# plt.title("Model")
-# plt.subplot(1,3,3).imshow(ima - f_fit(x, y), vmax=ima.max())
-# plt.title("Residual")
-
-# plt.savefig("data-model-residuals.png")
-
-try: 
-    f_fit.theta_0  =  np.degrees(f_fit.theta_0)  # Trasformo in gradi
+try:
+    f_fit.theta_0  =  degrees(f_fit.theta_0)  # Trasformo in gradi
 except:
     pass  # Se scommento la moffat, theta non esiste. Cosi' non si pianta.
 
 outputjson=dict(zip(f_fit.param_names, f_fit.parameters)) # Serializza in risultato...
-                
+
 p.output=outputjson;
+p.snr=float(hdr['STON']);
+p.pscale=float(hdr['PSCALE']);
+
+# end_time = time.time();
+# p.elapsed_time =  end_time - start_time;
 
 print (json.dumps(p.__dict__, sort_keys=True))  # ...e mostralo in un bel json

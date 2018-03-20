@@ -13,16 +13,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.modeling import models, fitting
+from scipy.optimize import curve_fit
 
 try:
     lines = sys.stdin.readlines();
     inputjson=lines[0];
 except:
     print ("ERROR: no data or bad data format provided. Try:")
-    print ('echo \{\"filename\":\"/home/indy/desktop/sim/v-vega/NTT15_31.fits\",\"x\":48,\"y\":47,\"box\":30\} | ./gaussian2dfit-davide.py')
-    print ('You sent:')
-    print (sys.stdin)
-    sys.exit(1)
 
 class input_parameters(object):   # Metto tutto il JSON in un oggetto Python
     def __init__(self, inputjson):
@@ -30,68 +27,63 @@ class input_parameters(object):   # Metto tutto il JSON in un oggetto Python
 
 p = json.loads(inputjson)
 
-# print (np.mean(p[0]['x_mean_arr']))
-# print (np.mean(p[0]['y_mean_arr']))
-
 #plt.figure(figsize=(8, 4))
-
-std19 = (np.std(p[4]['x_mean_arr'])+np.std(p[4]['y_mean_arr']))/2
-std18 = (np.std(p[3]['x_mean_arr'])+np.std(p[3]['y_mean_arr']))/2
-std17 = (np.std(p[2]['x_mean_arr'])+np.std(p[2]['y_mean_arr']))/2
-std16 = (np.std(p[1]['x_mean_arr'])+np.std(p[1]['y_mean_arr']))/2
-std15 = (np.std(p[0]['x_mean_arr'])+np.std(p[0]['y_mean_arr']))/2
-
-circle4 = plt.Circle((np.mean(p[4]['x_mean_arr']), np.mean(p[4]['y_mean_arr'])),
-                     2*std19,
-                     alpha=0.4, color='blue', fill=False)
-circle3 = plt.Circle((np.mean(p[3]['x_mean_arr']), np.mean(p[3]['y_mean_arr'])),
-                     2*std18,
-                     alpha=0.4, color='orange', fill=False)
-circle2 = plt.Circle((np.mean(p[2]['x_mean_arr']), np.mean(p[2]['y_mean_arr'])),
-                     2*std17,
-                     alpha=0.4, color='green', fill=False)
-circle1 = plt.Circle((np.mean(p[1]['x_mean_arr']), np.mean(p[1]['y_mean_arr'])),
-                     2*std16,
-                     alpha=0.4, color='red', fill=False)
-circle0 = plt.Circle((np.mean(p[0]['x_mean_arr']), np.mean(p[0]['y_mean_arr'])),
-                     2*std15,
-                     alpha=0.4, color='purple', fill=False)
 
 pltscale=0.205
 
-fig, ax = plt.subplots() # note we must use plt.subplots, not plt.subplot
+magarr=[]
+snrarr=[]
+stdarx=[]
+stdary=[]
+rmsarr=[]
+
+circarr=[]
+
+for i,v in enumerate(p) :
+    magarr.append( p[i]['mag'] )
+    snrarr.append( p[i]['snr'] )
+    stdarx.append( (np.std(p[i]['x_mean_arr'])) )
+    stdary.append( (np.std(p[i]['y_mean_arr'])) )
+    rmsarr.append( np.sqrt(np.mean(np.square(p[i]['err_vector']))) )
+
+fig,ax=plt.subplots()
+
+ax.scatter(magarr, [x*pltscale for x in stdarx], label='stdev x 1σ')
+ax.scatter(magarr, [x*pltscale for x in stdary], label='stdev y 1σ')
+ax.scatter(magarr, [x*pltscale for x in rmsarr], label='rms ')
+
+for i,j,k in zip(magarr,[x*pltscale for x in rmsarr],snrarr):
+    ax.annotate(str(k),xy=(i,j), xytext=(10,10), textcoords='offset points')
+
+ax.axhline(0.1)
+
+ax.legend()
+
+plt.title("Fitted position for 100 simulated G5V type star as a function of magnitude")
+plt.xlabel("V mag")
+plt.ylabel("Stdev [arcsec]")
+
+plt.show()
+
+# plt.title("Fit of simulated G0V stars with 16.5<m_v<19.0. 100 stars per magnitude. Circles: stdev at the 2σ level")
+# plt.xlabel("px")
+# plt.ylabel("px")
+
+#plt.xlim([10.6,20.4])
+#plt.ylim([10.6,20.4])
+
+# fig, ax = plt.subplots() # note we must use plt.subplots, not plt.subplot
 # (or if you have an existing figure)
 # fig = plt.gcf()
 # ax = fig.gca()
-
-plt.title("Fit of simulated stars with 15<m_v<19. 100 stars per magnitude. Circles: stdev at the 2σ level")
-plt.xlabel("px")
-plt.ylabel("px")
-
-plt.xlim([49.6,50.4])
-plt.ylim([49.6,50.4])
-
-plt.scatter(p[4]['x_mean_arr'], p[4]['y_mean_arr'], alpha=0.4, label='m_v=19, ø=%.3f arcsec' %(2*std19*pltscale*2))
-plt.scatter(p[3]['x_mean_arr'], p[3]['y_mean_arr'], alpha=0.4, label='m_v=18, ø=%.3f arcsec' %(2*std18*pltscale*2))
-plt.scatter(p[2]['x_mean_arr'], p[2]['y_mean_arr'], alpha=0.4, label='m_v=17, ø=%.3f arcsec' %(2*std17*pltscale*2))
-plt.scatter(p[1]['x_mean_arr'], p[1]['y_mean_arr'], alpha=0.4, label='m_v=16, ø=%.3f arcsec' %(2*std16*pltscale*2))
-plt.scatter(p[0]['x_mean_arr'], p[0]['y_mean_arr'], alpha=0.4, label='m_v=15, ø=%.2f arcsec' %(2*std15*pltscale*2))
-
-ax.add_artist(circle4)
-ax.add_artist(circle3)
-ax.add_artist(circle2)
-ax.add_artist(circle1)
-ax.add_artist(circle0)
-
-# plt.scatter( np.mean(p[4]['x_mean_arr']), np.mean(p[4]['y_mean_arr']),)
-# plt.scatter( np.mean(p[3]['x_mean_arr']), np.mean(p[3]['y_mean_arr']),)
-# plt.scatter( np.mean(p[2]['x_mean_arr']), np.mean(p[2]['y_mean_arr']),)
-# plt.scatter( np.mean(p[1]['x_mean_arr']), np.mean(p[1]['y_mean_arr']),)
-# plt.scatter( np.mean(p[0]['x_mean_arr']), np.mean(p[0]['y_mean_arr']),)
-
-plt.legend()
-plt.show()
-
+    
+    # circarr.append(plt.Circle((np.mean(p[i]['x_mean_arr']), np.mean(p[i]['y_mean_arr'])),
+    #                  2*stdarr[i], alpha=0.4, color='blue', fill=False) )
+    # plt.scatter(p[i]['x_mean_arr'], p[i]['y_mean_arr'], alpha=0.4,
+    #             label='m_v={:.1f}, diam={:.3f} arcsec'.format(p[i]['mag'], stdarr[i]*pltscale*2))
+    # ax.add_artist(circarr[i])
+#    print(magarr)
+    
 
 # p=input_parameters(inputjson)     # Ecco i dati in un comodo oggetto
 
