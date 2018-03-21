@@ -1,62 +1,48 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from matplotlib import pyplot as plt
-
-'''
-def sample_spherical(npoints, ndim=3):
-        vec = np.random.randn(ndim, npoints) # ndim vectors of npoints each. 
-        vec /= np.linalg.norm(vec, axis=0)   # norm of these vectors along each one (axis=0)
-        return vec
-
-xi, yi, zi = sample_spherical(1000) 
-
-fig, ax = plt.subplots(1, 1, subplot_kw={'projection':'3d', 'aspect':'equal'})
-ax.scatter(xi, yi, zi, s=2, zorder=1)
-plt.show()
-'''
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+import pandas as pd # manage tables
 
 npoints=10
 
+# Setting limit in declination for NTT telescope: -90° < DEC < +29.5°
+d1 = np.cos((-90.0 + 90)*u.deg)
+d2 = np.cos((+29 + 90)*u.deg)
 
-# theta = np.random.uniform(-np.pi, np.pi, npoints)
-# phi = np.arccos( np.random.uniform(-1, 1 ,npoints) )
+# Generating random points between limits in declination
+uu = np.random.uniform(-np.pi, np.pi, npoints)
+vv = np.random.uniform(d1, d2, npoints)
 
-uu = np.random.random(npoints)
-vv = np.random.random(npoints)
+# Uniform points on a sphere
+theta = uu  # right ascension in radians
+phi = np.arccos( vv ) - np.pi/2 # declination in radians
 
-theta = 2*np.pi*uu -np.pi
-phi = np.arccos( 2*vv-1 ) -np.pi/2
+# Creating astronomical coordinates arrays
+c = SkyCoord(theta, phi, unit="rad")
 
-# limit in hour angle HA: -5 h 30 m < HA < 5 h 30 m
-# limit in zenith distance ZD: ZD < 70°
-# limit in declination DEC: -120° < DEC < +29.5°
-
-from astropy.coordinates import SkyCoord  # High-level coordinates
-import astropy.units as u
-
-c = SkyCoord(theta,phi, unit="rad")
-
+# Transforming to sexagesimal string
 ra = c.ra.to(u.hourangle).to_string(sep=(':'))
 dec = c.dec.to_string(sep=':')
 
-radec = np.core.defchararray.add(ra, dec) # concat element string by element string
+# Concat arrays, element string by element string: 00:00:00.000-70:00:00.000
+radec = np.core.defchararray.add(ra, dec)
 
-import requests
-
+nstars = []
 for rd in radec :
     link = "http://archive.eso.org/skycat/servers/ucac2?c="+rd+"&r=0.25,1.7"
+    #print(link)
+    df=pd.read_csv(link, delimiter="\t")
+    df=df.drop(df.index[0]).drop(df.tail(1).index) # "-----" and "[EOD]"
+    #   if df["UCAC2 ID"].count() == 0 :
+    nstars.append(df["UCAC2 ID"].count())
 
-    f = requests.get(link)
-
-    print (f.text)
-
-
-
-
-# plt.figure(figsize=(8,4.2))
-# plt.subplot(111, projection="aitoff")
-# plt.grid(True)
-# plt.plot(theta, phi, 'o', markersize=2, alpha=0.3)
-# plt.show()
-
+    
+from matplotlib import pyplot as plt
+plt.figure(figsize=(8,4.2))
+plt.subplot(111, projection="aitoff")
+plt.grid(True)
+plt.plot(theta, phi, 'o', markersize=2, alpha=0.3)
+#plt.plot(emptheta, empphi, 'o', markersize=2, alpha=1)
+plt.show()
